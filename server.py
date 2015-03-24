@@ -1,0 +1,194 @@
+#!/usr/bin/env python
+
+"""
+Filename: server.py
+Author: Matthew Bird
+
+Runs a local server on port 4004. Allows connections and prompts for user names. 
+Has chat functionality. Keeps track of whether people are ready (represented as 1) 
+or not (represented as 0). Informs all users when all users are ready.
+"""
+
+
+#######################################################################################################
+#                                                                                                     #
+#                                   WELCOME TO THE SERVER FILE                                        #
+#                                                                                                     #
+#                                                                                                     #
+#                                                                                                     #
+#######################################################################################################
+
+
+# N.B. if you get a message saying port/socket is already in use, restart your terminal.
+
+import socket    
+import thread
+import time
+ 
+HOST = ""     # Manadatory host name
+PORT = 4004   # Arbitrary port
+
+
+#######################################################################################################
+#                                                                                                     #
+#                                    THE CONNECTION THREADER                                          #
+#                                                                                                     #
+#######################################################################################################
+
+def accept(conn):
+    """
+    Call the inner func in a thread so as not to block. Wait for a 
+    name to be entered from the given connection. Once a name is 
+    entered, set the connection to non-blocking and add the user to 
+    the users dict.
+    """
+    def threaded():
+        while True:
+            conn.send("Please enter your name:\n")
+            try:
+                name = conn.recv(1024).strip().upper()
+            except socket.error:
+                continue
+            if name in users:
+                conn.send("Name entered is already in use.\n")
+            elif name == '0000000000000000000':
+                conn.send("Enter your name before pressing Ready!\n")
+            elif name:
+                conn.setblocking(False)
+                users[name] = conn
+                userstatus[name] = 0
+                broadcast(name, "+++ %s ARRIVED +++" % name)
+                if len(users) > 1:
+                    conn.send("Users present: {}\n".format([i for i in users]))
+                else:
+                    conn.send("You're the first person here!\n")
+                conn.send("Type '!help' for chat commands.\n")
+                break
+    thread.start_new_thread(threaded, ())
+
+
+#######################################################################################################
+#                                                                                                     #
+#                                    THE CHAT FUNCTIONS                                               #
+#                                                                                                     #
+#######################################################################################################
+
+def broadcast(name, message):
+    """
+    Send a message to all users from the given name.
+    """
+    print message
+    for to_name, conn in users.items():
+        if to_name != name:
+            try:
+                conn.send(message + "\n")
+            except socket.error:
+                pass
+            
+def globalbroadcast(name, message):
+    """
+    Send a message to all users.
+    """
+    print message
+    for to_name, conn in users.items():
+        try:
+            conn.send(message + "\n")
+        except socket.error:
+            pass
+  
+def ready_checker(userstatus):
+    """
+    Checks whether all users are ready
+    """
+    if len(userstatus) > 1:
+        ready = 0
+        for user in userstatus:
+            if userstatus[user] != 1:
+                break
+            ready += 1
+        if ready >= len(userstatus):
+            globalbroadcast('',"--- EVERYONE IS READY! ---")                       
+                
+def input_handler(message,conn,name,userstatus):
+    """
+    Checks what the input is and determines what to do with it.
+    """
+    # First, check whether the input is relevant to readiness, and update readiness accordingly.
+    if message == '0000000000000000000':
+        print userstatus[name]
+        if userstatus[name] == 0:
+            userstatus[name] = 1
+            conn.send('--- You are ready! ---\n')
+        elif userstatus[name] == 1:
+            userstatus[name] = 0
+            conn.send('--- You are not ready! ---\n')
+        print userstatus
+        ready_checker(userstatus)
+    # Now go through various user commands
+    elif message == '!help':
+        conn.send("USER COMMANDS:\n!help: display list of commands\n!users: show users present\n")
+    elif message == '!users':
+        conn.send("Users present: {}\n".format([i for i in users]))
+    # Otherwise, just broadcast the message to users
+    else:
+        globalbroadcast(name, "%s> %s" % (name, message.strip()))
+        
+
+#######################################################################################################
+#                                                                                                     #
+#                                    THE SERVER SOCKET                                                #
+#                                                                                                     #
+#######################################################################################################
+
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server.setblocking(False)
+server.bind((HOST, PORT))
+server.listen(1)
+print "Listening on %s" % ("%s:%s" % server.getsockname())
+
+
+#######################################################################################################
+#                                                                                                     #
+#                                   THE MAIN EVENT LOOP                                               #
+#                                                                                                     #
+#######################################################################################################
+
+
+users = {}      # e.g. {mafu: <connection details>}
+userstatus = {}  # e.g.{mafu: 1} = mafu is ready, {mafu:0} = mafu is not ready
+ready = 0
+while True:
+    try:
+        # Accept new connections.
+        while True:
+            try:
+                conn, addr = server.accept()
+            except socket.error:
+                break
+            accept(conn)
+        # Read from connections.
+        for name, conn in users.items():
+            try:
+                message = conn.recv(1024)
+            except socket.error:
+                continue
+            if not message:
+                # Because empty string is given on disconnect
+                del users[name]  
+                del userstatus[name]
+                broadcast(name, "--- %s LEAVES ---" % name)
+                # See whether the leaving person changes whether everyone is ready
+                ready_checker(userstatus)
+            else:
+                # Look at what to do with the input
+                input_handler(message.strip(),conn,name,userstatus)
+        time.sleep(.1)
+    except (SystemExit, KeyboardInterrupt):
+        break
+
+
+
+
+
