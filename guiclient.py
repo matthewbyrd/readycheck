@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 """
-Runs a GUI client for ReadyCheck, connecting to a socket server.
+Filename: server.py
+Author: Matthew Bird
+
+Runs a GUI client for ReadyCheck, connecting to a socket server on localhost port 4004.
 """
 
 #######################################################################################################
