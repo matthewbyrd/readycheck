@@ -98,7 +98,7 @@ def globalbroadcast(name, message):
   
 def ready_checker(userstatus):
     """
-    Checks whether all users are ready
+    Checks whether all users are ready.
     """
     if len(userstatus) > 1:
         ready = 0
@@ -111,7 +111,7 @@ def ready_checker(userstatus):
                 
 def input_handler(message,conn,name,userstatus):
     """
-    Checks what the input is and determines what to do with it.
+    Checks what the user's input is and determines what to do with it.
     """
     # First, check whether the input is relevant to readiness, and update readiness accordingly.
     if message == '0000000000000000000':

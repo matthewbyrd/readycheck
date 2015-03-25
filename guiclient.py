@@ -36,6 +36,9 @@ s.connect((host, port))
 #######################################################################################################
 
 def alert():
+    """
+    Play a sound file used when everyone is ready.
+    """
     pygame.mixer.init()
     pygame.mixer.music.load("alert.wav")
     pygame.mixer.music.play()
@@ -103,13 +106,16 @@ class Ui_ReadyCheck(object):
         message = message.encode()
         s.send(message)
 
-    def updateUi(self):         
+    def updateUi(self):
+        """
+        Adds texts to the user's chat UI.
+        """         
         text = unicode(self.lineEdit.text())
         self.textBrowser.append(text)        
             
     def sendy(self):  
         """
-        Sends the contents of the chat entry to the server
+        Sends the contents of the chat entry to the server.
         """
         message = unicode(self.lineEdit.text())
         message = message.encode()
@@ -122,6 +128,9 @@ class Ui_ReadyCheck(object):
         self.pushButton_2.setText(_translate("ReadyCheck", "Ready!", None))
         
     def hear(self):
+        """
+        Wait for messages from the server.
+        """
         def loop0():
             while 1:
                 msg_received = s.recv(1024)
