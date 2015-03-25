@@ -59,10 +59,8 @@ def accept(conn):
                 userstatus[name] = 0
                 broadcast(name, "+++ %s ARRIVED +++" % name)
                 if len(users) > 1:
-                    conn.send("Welcome, " + name + ".\n")
                     conn.send("Users present: {}\n".format([i for i in users]))
                 else:
-                    conn.send("Welcome, " + name + ".\n")
                     conn.send("You're the first person here!\n")
                 conn.send("Type '!help' for chat commands.\n")
                 break
