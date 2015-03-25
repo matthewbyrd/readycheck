@@ -173,11 +173,13 @@ while True:
         # Read from connections.
         for name, conn in users.items():
             try:
+                # Try to receive a user input
                 message = conn.recv(1024)
             except socket.error:
                 continue
             if not message:
                 # Because empty string is given on disconnect
+                # Remove that user
                 del users[name]  
                 del userstatus[name]
                 broadcast(name, "--- %s LEAVES ---" % name)
